@@ -11,6 +11,7 @@ class Screen(object):
 	screen_cols = 40
 
 	def __init__(self, screen):
+		curses.init_pair(1, curses.COLOR_GREEN, 0)
 		curses.curs_set(0)
 		self.myscreen = screen.subwin(self.screen_lines, self.screen_cols, 0, 0)
 		self.myscreen.border(0, 0, 0, 0, curses.ACS_ULCORNER, curses.ACS_URCORNER, curses.ACS_LLCORNER, curses.ACS_LRCORNER)
@@ -47,6 +48,7 @@ class Snake(object):
 
 	def __init__(self, screen):
 		self.screen = screen
+		curses.init_pair(1, curses.COLOR_RED, 0)
 		i = 1
 		while i<=self.original_length:
 			i += 1
@@ -55,7 +57,7 @@ class Snake(object):
 	def draw(self):
 		i = self.length-1
 		while i>=0:
-			self.screen.myscreen.addstr(self.body[i][1], self.body[i][0], "*")#(y,x,character)
+			self.screen.myscreen.addstr(self.body[i][1], self.body[i][0], "*")#(y, x, character)
 			i -= 1
 
 	def move(self, direction):
@@ -77,6 +79,20 @@ class Snake(object):
 			self.body.pop(0)
 			self.direction = direction
 
+	def grow(self):
+		self.length += 1
+		x = self.body[0][0]
+		y = self.body[0][1]
+		self.body.insert(0, [x, y])
+
+	def eat_apple(self, x, y, character):
+		if x == self.body[-1][0] and y == self.body[-1][1]:
+			self.grow()
+			#pass
+		if [x, y] in self.body:
+			#shining character
+			self.screen.myscreen.addstr(y, x, character, curses.color_pair(1))
+
 	def get_dead_state(self):
 		head = self.body[-1]
 		if head[0] == 1 or head[0] == self.screen.screen_cols:
@@ -93,16 +109,19 @@ class Snake(object):
 
 class Barrier(object):
 	screen = None
+	character = ''
+	x = 0
+	y = 0
 	def __init__(self, screen):
 		self.screen = screen
 
 	def draw(self, snake):
 		while True:
-			x = random.randint(1, self.screen.screen_cols-2)
-			y = random.randint(1, self.screen.screen_lines-2)
-			if [x, y] not in snake.body:
-				character = chr(random.randint(65, 90))
-				self.screen.myscreen.addstr(y, x, character)
+			self.x = random.randint(1, self.screen.screen_cols-2)
+			self.y = random.randint(1, self.screen.screen_lines-2)
+			if [self.x, self.y] not in snake.body:
+				self.character = chr(random.randint(65, 90))
+				self.screen.myscreen.addstr(self.y, self.x, self.character)
 				break
 		return
 
@@ -144,6 +163,7 @@ def run_snake(stdscr):
 				last_direction = direction
 			else:
 				snake.move(last_direction)
+			snake.eat_apple(barrier.x, barrier.y, barrier.character)
 			snake.draw()
 			screen.refresh()
 			snake.get_dead_state()
